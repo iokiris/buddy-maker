@@ -1,0 +1,94 @@
+{
+    "person": {
+        "name": "Как тебя зовут?",
+        "age": "Сколько тебе лет?",
+        "hometown": "В каком городе ты родился?"
+    },
+    "hobbies_cat": {
+        "music": {
+            "field": "Музыка",
+            "singing": "пение",
+            "playing_instrument": "муз. инструменты",
+            "listening": "прослушивание музыки"
+        },
+        "handiwork": {
+            "field": "ручная работа",
+            "sewing": "шитьё",
+            "modeling": "лепка",
+            "woodworking": "работа с деревом",
+            "mettall_working": "работа с металлом",
+            "other_handiwork": "другое"
+            
+        },
+        "programming": {
+            "field": "программирование",
+            "web": "web-программирование",
+            "ml": "ML"
+        },
+        "learning_languages": {
+            "field": "Языки",
+            "inter_lang": "иностранные языки"
+        },
+        "art": {
+            "field": "Арты",
+            "painting": "рисование",
+            "writing": "писательство",
+            "design": "дизайн"
+        },
+        "sport": {
+            "field": "Спорт",
+            "football": "футбол",
+            "bascetball": "баскетбол",
+            "volleyball": "волейбол",
+            "martia_arts": "единоборства",
+            "winter_sports": "зимний спорт",
+            "water_sports": "водный спорт",
+            "oter_sports": "другое"
+        },
+        "computer_games": {
+            "field": "компьютерные игры",
+            "competitve_games": "сорев. игры",
+            "mobo_games": "мобильные игры",
+            "strategies_games": "стратегии",
+            "relax_games": "казуальные",
+            "other_games": "другие"
+        },
+        "table_games": {
+            "field": "Настольные игры",
+            "tabletop_role": "ролевые игры",
+            "ordinary": "обычные настолки"
+        },
+        "dances": {
+            "field": "Танцы",
+            "bal_dance": "бальные танцы",
+            "sport_dance": "спортивные танцы"
+        },
+        "reading_books": {
+            "field": "Книги",
+            "read_book": "чтение книг",
+            "audio_book": "аудиокниги"
+        },
+        "watching_movies": {
+            "field": "Просмотр видеоматериалов",
+            "youtube": "YouTube",
+            "films": "фильмы",
+            "serials": "сериалы"
+        },
+        "cooking": {
+            "field": "Кулинария",
+            "home_food": "домашняя еда",
+            "extra_food": "кулинарное дело"
+        },
+        "blogging": {
+            "field": "Блогерство",
+            "video_blogging": "видео блог",
+            "written_blogging": "письменный блог"
+        },
+        "other": {
+            "field": "Другие",
+            "bugs_collection": "коллекционирование жуков",
+            "swamp_football": "болотный футбол",
+            "card_homes": "карточные домики"
+        }
+    }
+}
