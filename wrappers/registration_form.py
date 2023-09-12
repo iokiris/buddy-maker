@@ -44,12 +44,12 @@ class RegisterForm:
                 "visual": ""
             },
             "hobbies": {
-                "sport": ["basketball"],
                 "last_cat": "",
                 "visual": []
             },
             "about_me": "",
             "photo": "",
+            "ignore_case": ["ignore_case", "visual", "last_cat"]
         }
 
     def current_step(self, user_id: int):

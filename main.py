@@ -12,8 +12,9 @@ from static.files import config
 from utils.ml_splitter import ml_split_fields
 from utils.db_controller import DataHandler, User
 
-profiles = DataHandler("databases/profiles.db")
+from utils.data import profiles
 profiles.add_tabble()
+profiles.update_userlist()
 
 from aiogram3_form import Form, FormField
 import wrappers.registration_form as regform
@@ -113,12 +114,23 @@ def get_form(name):
 async def cmd_start(message: types.Message, state: FSMContext):
     uid = message.chat.id
     #regform.States.current[uid] = "hobbies"
-
-    await message.answer("Привет, это бот MISIS Family")
-    await message.answer("Кратко описать возможности")
-    '''kb = [
+    user = profiles.get_user(uid)
+    if user=="3f":
+        await message.answer(
+            text = "Привет, это бот Buddy Maker. Я нашел твою анкету."
+        )
+        await message.answer_photo(
+            photo = user.photo_id,
+            caption = user.profile
+        )
+        print(user.__dict__)
+    else:
+        await message.answer("Привет, это бот MISIS Family")
+        await message.answer("Кратко описать возможности")
+        await start_all_forms(uid, message, state)
+    kb = [
         [
-            types.KeyboardButton(text="Знакомства"),
+            types.KeyboardButton(text="Моя анкета"),
             types.KeyboardButton(text="Группы по интересам")
         ],
         [
@@ -133,8 +145,8 @@ async def cmd_start(message: types.Message, state: FSMContext):
         keyboard=kb,
         resize_keyboard=True,
         input_field_placeholder="Выберите способ подачи"
-    )'''
-    await start_all_forms(uid, message, state)
+    )
+
 
 
 
@@ -156,20 +168,34 @@ async def add_user_field(callback: types.CallbackQuery, state: FSMContext):
             return
         case "hobbies_cat":
             regform.States.users[uid]["hobbies"]["last_cat"] = query[2]
-
+            print(regform.States.users[uid]["hobbies"]["last_cat"])
             regform.States.next_step(
-            message = callback.message,
-            user_id = uid,
-            bot = bot,
-            state = state
+                message = callback.message,
+                user_id = uid,
+                bot = bot,
+                state = state
             )
             await regform.States.toggle_from_step_name(
-            message = callback.message,
-            user_id = uid,
-            form = None,
-            bot = bot,
-            state = state
+                message = callback.message,
+                user_id = uid,
+                form = None,
+                bot = bot,
+                state = state
             )
+
+@dp.message(F.text.lower() == "моя анкета")
+async def d(message: Message):
+    user = profiles.get_user(message.chat.id)
+    if user:
+        await message.answer_photo(
+            caption = "Ваша анкета:\n" + user.profile,
+            photo = user.photo_id,
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text = "Редактировать", callback_data="profiles*edit")
+            ]])
+        )
+    else:
+        await message.answer(text = "Анкеты не найдены.")
 
 @dp.callback_query(F.data == "back_cat")
 async def add_user_field(callback: types.CallbackQuery, state: FSMContext):
@@ -205,17 +231,17 @@ async def set_user_field(callback: types.CallbackQuery):
 
 
 async def add_hobbie(user_id, name):
-    #arr = regform.States.get_value_from_key(user_id, "hobbies") or []
-    #if name not in arr: arr.append(name)
     category = regform.States.get_value_from_key(user_id, "hobbies")["last_cat"]
     try:
-        arr = regform.States.users[user_id]["hobbies"]["visual"]
+        arr = regform.States.users[user_id]["hobbies"][category]
     except KeyError:
         arr = []
+    varr = regform.States.users[user_id]["hobbies"]["visual"]
     if name not in arr:
+        varr.append(name)
         arr.append(name)
-    regform.States.users[user_id]["hobbies"][category] = arr
-
+    regform.States.users[user_id]["hobbies"][category] = sorted(arr)
+    regform.States.users[user_id]["hobbies"]["visual"] = varr
 
 @dp.callback_query(F.data.split("*")[0] == "slider")
 async def slide_control(callback: types.CallbackQuery):
