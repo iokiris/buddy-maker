@@ -6,6 +6,7 @@
 # User 
 config.py
 [Dd]atabases/
+[Tt]ests/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

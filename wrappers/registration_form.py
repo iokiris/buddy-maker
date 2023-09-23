@@ -58,7 +58,6 @@ class RegisterForm:
     def next_step(self, message: Message, user_id: int, bot, state):
         if self.get_last_step() == self.current_step(user_id): return
         self.users[user_id]["current_step"] = self.steps[self.steps.index(self.current_step(user_id)) + 1]
-        print(self.current_step(user_id))
         #self.toggle_button_row(self.current_step(user_id), message, user_id, bot, state)]
 
     def prev_step_name(self, name):
@@ -97,7 +96,6 @@ def get_buttons_slider(user_id: int, side: str, cb_data, is_category = False, of
 
     buttons = []
     step = States.users[user_id]["current_step"]
-    print("STEP", step)
     if is_category:
         d = dict_from_category(fields[step])
         cb_index = 0
@@ -158,7 +156,6 @@ async def gen_personal_form(user_id: int, message: types.Message, person_form, b
     else:
         States.init_user_form(user_id)
         try:
-            print("trying...")
             @person_form.submit()
             async def person_form_submit_handler(form: person_form, event_chat: types.Chat):
                 #States.users[user_id][States.current_step(user_id)]
@@ -174,8 +171,8 @@ async def gen_personal_form(user_id: int, message: types.Message, person_form, b
                     callback_data = f"steps*next*1"
                 )]])
                 await form.answer(text = States.users[event_chat.id]["person"]["visual"], reply_markup=confirm_button)
-        except Exception as e:
-            print(e)
+        except Exception:
+            None
         await start_form_handler(user_id, message, person_form, bot, state)
 
 async def gen_photo_form(user_id: int, message: types.Message, form, bot, state):
@@ -191,8 +188,8 @@ async def gen_about_me_form(user_id: int, message: types.Message, form, bot, sta
                     callback_data = f"steps*next*1"
                 )]])
             await form.answer(text = f"Ваш текст: {form.info}", reply_markup=confirm_button)
-    except Exception as e:
-        print(e)
+    except Exception:
+        None
     await start_form_handler(user_id, message, form, bot, state)
 
 async def gen_hobbies_cat_button(user_id: int, message: Message, form, bot, state):
@@ -201,7 +198,6 @@ async def gen_hobbies_cat_button(user_id: int, message: Message, form, bot, stat
     await message.edit_text(text="Выберите категорию хобби", reply_markup=kb)
 
 async def gen_hobbies_button(user_id: int, message: Message, form, bot, state):
-    print("GEN HOBBIES BUTTON")
     buttons = get_buttons_slider(user_id, "", "add*hobbies", False, 4)
     kb = types.InlineKeyboardMarkup(inline_keyboard=buttons, resize_keyboard=True)
     hobbies_arr = States.get_value_from_key(user_id, 'hobbies')['visual']
@@ -259,7 +255,6 @@ async def confirm_and_save_form(user_id: int, message: Message, form, bot, state
         [InlineKeyboardButton(text = "Сохранить анкету", callback_data="states*save*сохранить")], 
         [InlineKeyboardButton(text = "Отменить заполнение", callback_data="states*clear*очистить")]]
     )
-    print(States.users[user_id])
     await message.edit_caption(
         caption = "Ваша анкета: " + '\n' + form_in_string, reply_markup=buttons
     )

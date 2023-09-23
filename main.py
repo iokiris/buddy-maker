@@ -4,8 +4,10 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-#from deepface import DeepFace
+
 from mtcnn import MTCNN
+import numpy as np
+detector = MTCNN()
 
 from static.files import config
 
@@ -13,11 +15,12 @@ from utils.ml_splitter import ml_split_fields
 from utils.db_controller import DataHandler, User
 
 from utils.data import profiles
-profiles.add_tabble()
-profiles.update_userlist()
+
+from utils import search_engine
 
 from aiogram3_form import Form, FormField
 import wrappers.registration_form as regform
+
 
 API_TOKEN: str = config.TOKEN
 
@@ -54,14 +57,12 @@ from tempfile import NamedTemporaryFile
 @dp.message(F.photo)
 async def photo_handler(message: Message, state: FSMContext):
     img = Image.new(mode="RGBA", size=(1920,1080))
-    #print(detectFace())
     file_info = await bot.get_file(message.photo[-1].file_id)
     #with NamedTemporaryFile("wb", suffix=".png") as pct:
 
     downloaded_file = await bot.download_file(file_info.file_path)
     img = Image.open(downloaded_file)
-    import numpy as np
-    detector = MTCNN()
+    
     result = detector.detect_faces(np.asarray(img))
     
 
@@ -114,8 +115,8 @@ def get_form(name):
 async def cmd_start(message: types.Message, state: FSMContext):
     uid = message.chat.id
     #regform.States.current[uid] = "hobbies"
-    user = profiles.get_user(uid)
-    if user=="3f":
+    user = await profiles.get_user(uid)
+    if user:
         await message.answer(
             text = "Привет, это бот Buddy Maker. Я нашел твою анкету."
         )
@@ -123,10 +124,9 @@ async def cmd_start(message: types.Message, state: FSMContext):
             photo = user.photo_id,
             caption = user.profile
         )
-        print(user.__dict__)
     else:
-        await message.answer("Привет, это бот MISIS Family")
-        await message.answer("Кратко описать возможности")
+        await message.answer("Привет, это бот для более простых знакмоств в среде нашего вуза!")
+        #await message.answer("Кратко описать возможности")
         await start_all_forms(uid, message, state)
     kb = [
         [
@@ -164,11 +164,9 @@ async def add_user_field(callback: types.CallbackQuery, state: FSMContext):
                 text = f"Выбранные хобби: {', '.join(regform.States.get_value_from_key(uid, 'hobbies')['visual'])}",
                 reply_markup=callback.message.reply_markup
             )
-            #print(callback.__dict__)
             return
         case "hobbies_cat":
             regform.States.users[uid]["hobbies"]["last_cat"] = query[2]
-            print(regform.States.users[uid]["hobbies"]["last_cat"])
             regform.States.next_step(
                 message = callback.message,
                 user_id = uid,
@@ -183,19 +181,53 @@ async def add_user_field(callback: types.CallbackQuery, state: FSMContext):
                 state = state
             )
 
+async def send_sim_user(self_id, message):
+    try:
+        matched_user = await profiles.get_user((await search_engine.searcher(self_id, 1, 0.4, []))[0][0])
+        await message.answer_photo(
+            photo = matched_user.photo_id,
+            caption = matched_user.profile,
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔎  Поиск", callback_data="search*sim")]])
+        )
+    except:
+        await message.answer(text = "Я никого не нашёл :(")
+@dp.message(F.text.lower() == "поиск")
+async def find_sim(message: Message):
+    uid = message.chat.id
+    await send_sim_user(uid, message=message)
 @dp.message(F.text.lower() == "моя анкета")
 async def d(message: Message):
-    user = profiles.get_user(message.chat.id)
+    user = await profiles.get_user(message.chat.id)
     if user:
         await message.answer_photo(
             caption = "Ваша анкета:\n" + user.profile,
             photo = user.photo_id,
             reply_markup = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text = "Редактировать", callback_data="profiles*edit")
+                InlineKeyboardButton(text = "Новая анкета", callback_data="profiles*pre-edit")
             ]])
         )
     else:
         await message.answer(text = "Анкеты не найдены.")
+
+@dp.callback_query(F.data.split("*")[0] == "profiles")
+async def profiles_mg(callback: types.CallbackQuery, state: FSMContext):
+    query = callback.data.split("*")
+    uid = callback.message.chat.id
+    print(query)
+    match query[1]:
+        case "pre-edit":
+            confirm_button = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(
+                text = "Подтвердить",
+                callback_data = f"profiles*delete"
+            )]])
+            await callback.message.answer(text = f"Ваша текущая анкета будет удалена.", reply_markup=confirm_button)
+        case "delete":
+            await profiles.remove_user(uid)
+            await callback.message.edit_text(
+                text = "Анкета удалена. Приступим к заполнению новой?",
+                reply_markup = InlineKeyboardMarkup(inline_keyboard = [[InlineKeyboardButton(text = "Заполнить анкету", callback_data = "profiles*new")]]))
+        case "new":
+            await start_all_forms(uid, callback.message, state)
 
 @dp.callback_query(F.data == "back_cat")
 async def add_user_field(callback: types.CallbackQuery, state: FSMContext):
@@ -247,9 +279,7 @@ async def add_hobbie(user_id, name):
 async def slide_control(callback: types.CallbackQuery):
     cb = callback.message.reply_markup.inline_keyboard[0][0].callback_data.split("*")
     query = callback.data.split("*")
-    print(query, cb)
     uid = callback.message.chat.id
-    print(callback.message.reply_markup.inline_keyboard[0][0].callback_data)
     kb = InlineKeyboardMarkup(inline_keyboard=regform.get_buttons_slider(uid, query[1], cb[0] + "*" + cb[1], True, int(query[2])))
     await callback.message.edit_reply_markup(
         reply_markup=kb
@@ -288,6 +318,13 @@ async def change_step(callback: types.CallbackQuery, state: FSMContext):
         state
     )
 
+@dp.callback_query(F.data.split("*")[0] == "search")
+async def send_profile(cb: types.CallbackQuery):
+    query = F.data.split("*")
+    uid = cb.message.chat.id 
+    if query[1] == "sim":
+        await send_sim_user(uid, cb.message)
+
 @dp.callback_query(F.data.split("*")[0] == "states")
 async def states_manager(callback: types.CallbackQuery, state: FSMContext):
     query = F.data.split("*")
@@ -300,9 +337,9 @@ async def states_manager(callback: types.CallbackQuery, state: FSMContext):
                 uid = uid,
                 photo_id = regform.States.get_value_from_key(uid, "photo"),
                 profile = regform.form_constructor(uid),
-                ml_split = ml_split_fields(regform.States.users[uid])
+                jstring = ml_split_fields(regform.States.users[uid])
             )
-            profiles.add_user(user)
+            await profiles.add_user(user)
             await callback.message.answer(text = "Анкета сохранена.")
         case "clear":
             await callback.message.delete()
@@ -311,5 +348,10 @@ async def states_manager(callback: types.CallbackQuery, state: FSMContext):
 async def process_help_command(message: Message):
     await message.answer("help")
 
+async def onStart():
+    print("Started.")
+
 if __name__ == '__main__':
-    dp.run_polling(bot)
+    dp.run_polling(bot, skip_updates = True)
+
+

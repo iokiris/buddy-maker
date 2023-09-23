@@ -1,1 +1,1 @@
-TOKEN = "ACCESS_TOKEN"
+TOKEN = ""
